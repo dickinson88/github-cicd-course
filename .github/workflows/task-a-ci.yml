@@ -1,6 +1,9 @@
-name: task-a cd
+name: task-a ci
 
-on: [push]
+on:
+  pull_request:
+    paths:
+      - 'task_a/**'
 
 jobs:
   test:
@@ -36,3 +39,4 @@ jobs:
         with:
           name: Report-${{ matrix.os }}-${{ matrix.python-version }}
           path: task_a/report.html
+

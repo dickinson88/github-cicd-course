@@ -7,7 +7,10 @@ on:
         description: 'Message'
         required: true
         default: 'Hello CI/CD'
-      # TODO: add tag input
+      tag:
+        description: 'Image tag'
+        required: true
+        default: 'latest'
 permissions:
   contents: read
   packages: write
@@ -26,7 +29,7 @@ jobs:
       - name: Log in to GitHub container registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io/${{ github.repository }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN  }}
       - name: Extract metadata (tags, labels) for Docker
@@ -35,5 +38,27 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: type=ref,event=tag
-      # TODO: build and push docker image
-  # TODO: Add test job
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./task_b
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ inputs.tag }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  test:
+    runs-on: ubuntu-latest
+    needs: docker
+    name: Test Docker container
+    services:
+      webapp:
+        image: ghcr.io/${{ github.repository }}:${{ inputs.tag }}
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+        ports:
+          - 8080:80
+    steps:
+      - name: Test web service
+        run: |
+          curl http://127.0.0.1:8080/index.html
